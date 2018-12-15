@@ -6,11 +6,24 @@
 
 using namespace std;
 
+/*
+ * The four russsians technique needs some scores to be pre-calculated. We are not including the details here but
+ * you can look it up on http://cs.au.dk/~cstorm/courses/AiBS_e12/slides/FourRussians.pdf
+ *
+ * The required pre-calculation is done by `cache-values` and the core of the four-russians algorithm is run by
+ * `_russians`
+ *
+ * However, _russians expects the inputs with sizes that are multiples of `block_size` (t). `russians` makes the
+ * necessary modifications to the input so that we are not limited by this requirement and can run four russians
+ * with inputs of arbitrary length
+ */
+
+
 void print_vector(vector<int> v) {
-    for (int i = 0; i < v.size(); i++) {
-        cout << v[i] << "\t";
+    for (auto vi: v) {
+        cout << vi << "\t";
     }
-    cout << "\n";
+    cout << endl;
 }
 
 void print_matrix(vector<vector<int> > v) {
@@ -22,56 +35,23 @@ void print_matrix(vector<vector<int> > v) {
     }
 }
 
+
+/*
+ * fill_partial_edit_distance calculates the right-most column and last row of the dp matrix given the
+ * first row and the left-most column.
+ * b = left-most column. Must be offset-encoded
+ * c = first row. Must be offset-encoded
+ * v = sequence 1
+ * w = sequence 2
+ * d = (output) right-most column. _not_ offset-encoded
+ * e = (output) bottom row. _not_ offset-encoded
+ * Here, there is no extra character before v or w
+ */
 void fill_partial_edit_distance(const vector<int> &b, const vector<int> &c,
                                 const vector<int> &v, const vector<int> &w,
                                 vector<int> &d, vector<int> &e) {
     /*
-     * b.size() == v.size() - 1
-     * c.size() == w.size() - 1
-     * d.size() == b.size()
-     * e.size() == c.size()
-     */
-    unsigned long m = v.size(), n = w.size();
-    vector<vector<int> > dp(m, vector<int>(n));
-
-    // Initialize left-border and top-border
-    dp[0][0] = 0;
-
-    for (int i = 1; i < m; i++) {
-        dp[i][0] = dp[i - 1][0] + b[i - 1];
-    }
-
-    for (int j = 1; j < n; j++) {
-        dp[0][j] = dp[0][j - 1] + c[j - 1];
-    }
-
-    // Fill interior of dp tale
-    for (int i = 1; i < m; i++) {
-        for (int j = 1; j < n; j++) {
-            if (v[i] == w[j]) {
-                dp[i][j] = dp[i - 1][j - 1];
-            } else {
-                dp[i][j] = min(dp[i - 1][j], min(dp[i][j - 1], dp[i - 1][j - 1])) + 1;
-            }
-        }
-    }
-
-    for (int i = 0; i < d.size(); i++) {
-        d[i] = dp[i + 1][n - 1];
-    }
-
-    for (int j = 0; j < e.size(); j++) {
-        e[j] = dp[m - 1][j + 1];
-    }
-}
-
-/*
- * Here, there is no extra character before v or w
- */
-void fill_partial_edit_distance2(const vector<int> &b, const vector<int> &c,
-                                 const vector<int> &v, const vector<int> &w,
-                                 vector<int> &d, vector<int> &e) {
-    /*
+     * Some other implicit restrictions
      * b.size() == v.size()
      * c.size() == w.size()
      * d.size() == b.size()
@@ -80,13 +60,15 @@ void fill_partial_edit_distance2(const vector<int> &b, const vector<int> &c,
     unsigned long m = v.size() + 1, n = w.size() + 1;
     vector<vector<int> > dp(m, vector<int>(n));
 
-    // Initialize left-border and top-border
+    // Initializations
     dp[0][0] = 0;
 
+    // Initialize left border of dp matrix
     for (int i = 1; i < m; i++) {
         dp[i][0] = dp[i - 1][0] + b[i - 1];
     }
 
+    // Initialize top-border of dp matrix
     for (int j = 1; j < n; j++) {
         dp[0][j] = dp[0][j - 1] + c[j - 1];
     }
@@ -111,6 +93,10 @@ void fill_partial_edit_distance2(const vector<int> &b, const vector<int> &c,
     }
 }
 
+/*
+ * edit_distance right-most col uses the naive algorithm to calculate the right-most column of the dp table
+ * v[0] and w[0] are ignored. They are assumed to be padding characters.
+ */
 vector<int> edit_distance_rightmost_col(const vector<int> &v, const vector<int> &w) {
     unsigned long m = v.size(), n = w.size();
     vector<vector<int> > dp(m, vector<int>(n));
@@ -159,12 +145,6 @@ ulong int_pow(int x, int m) {
     return result;
 }
 
-//void load_to_cache_map(int t, int s) {
-//    auto cache_key = make_pair(t, s);
-//    int *cache = cache_values(t, s);
-//    ::_cache_map[cache_key] = cache;
-//}
-
 int *cache_values(int t, int s) {
     ulong tpow = int_pow(s, t);
     ulong spow = int_pow(3, t);
@@ -191,7 +171,7 @@ int *cache_values(int t, int s) {
                 for (ulong cx = 0; cx < max_value2; cx++) {
                     fill_base_values(c, cx, 3, -1);
 
-                    fill_partial_edit_distance2(b, c, v, w, d, e);
+                    fill_partial_edit_distance(b, c, v, w, d, e);
 
                     for (int i = 0; i < t; i++) {
                         *cache_iter = d[i];
@@ -207,6 +187,53 @@ int *cache_values(int t, int s) {
     }
 
     return cache;
+}
+
+int *load_cache(const string filename) {
+    ifstream f(filename, ios::binary | ios::ate);
+    streamsize size = f.tellg();
+    if (size % sizeof(int) != 0) {
+        cerr << "Invalid cache file" << endl;
+        return NULL;
+    } else {
+        cerr << "Array size: " << size / sizeof(int) << endl;
+    }
+
+    char *cache = new char[size];
+    if (f.read(cache, size)) {
+        return (int *) cache;
+    } else {
+        return NULL;
+    }
+}
+
+inline bool file_exists(const string &name) {
+    ifstream f(name.c_str());
+    return f.good();
+}
+
+/*
+ * calculate_or_load_cache loads pre-calculated values from disk if possible. If cached file not present then it
+ * pre-calculates values and stores them to disk.
+ *
+ * calculate_or_load_cache returns NULL if something went wrong :(
+ */
+int *calculate_or_load_cache(int t, int s) {
+    string filename = "_cache_" + to_string(t) + "_" + to_string(s);
+    if (!file_exists(filename)) {
+        fprintf(stderr, "Creating cache for t=%d, s=%d\n", t, s);
+        int *cache = cache_values(t, s);
+        ulong max_value = int_pow(s, t);
+        ulong max_value2 = int_pow(3, t);
+        ulong total_size = 2 * max_value * max_value * max_value2 * max_value2 * t;
+        ofstream f(filename, ios::binary);
+        f.write((char *) cache, total_size * sizeof(int));
+        f.close();
+        return cache;
+    } else {
+        fprintf(stderr, "Loading cache from file %s\n", filename.c_str());
+        return load_cache(filename);
+    }
 }
 
 ulong vector_to_index(vector<int>::iterator it, vector<int>::iterator end, int base, int offset) {
@@ -227,6 +254,9 @@ inline ulong vector_to_index(const int *arr, int n, int base, int offset) {
     return result;
 }
 
+/*
+ * v and
+ */
 vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cache) {
     ulong tpow = int_pow(s, t);
     ulong spow = int_pow(3, t);
@@ -239,8 +269,7 @@ vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cac
 
     int b[16];
     int c[16];
-//    vector<int> b(t), c(t);
-//    vector<int> d(t), e(t);
+
     // Initialize
     for (int i = 0; i < t; i++) {
         b[i] = 1;
@@ -320,48 +349,23 @@ vector<int> russians(vector<int> v, vector<int> w, int s, int t, const int *cach
         vector<int> result = result_temp;
 
         // Extend this edit distance
-        for (int j=w2.size(); j < w.size(); j++) {
+        for (int j = w2.size(); j < w.size(); j++) {
             result[0] = j;
-            for (int i=1; i < v.size(); i++) {
+            for (int i = 1; i < v.size(); i++) {
                 if (v[i] == w[j]) {
-                    result[i] = result_temp[i-1];
+                    result[i] = result_temp[i - 1];
                 } else {
-                    result[i] = min(result_temp[i], min(result_temp[i-1], result[i-1])) + 1;
+                    result[i] = min(result_temp[i], min(result_temp[i - 1], result[i - 1])) + 1;
                 }
             }
             result_temp = result;
         }
         return vector(result.begin(), result.begin() + initial_v_size);
     } else {
-        cout << "V: "; print_vector(v);
-        cout << "W: "; print_vector(w);
+        cout << "V: ";
+        print_vector(v);
+        cout << "W: ";
+        print_vector(w);
         return edit_distance_rightmost_col(v, w);
     }
-//    if (v.size() >= t + 1 && w.size() >= t + 1) {
-//        while (v.size() % t != 1) {
-//            v.push_back(0);
-//        }
-//
-//        vector<int> w2(w.begin(), w.begin() + w.size() - w.size() % t);
-//        vector<int> result_temp = _russians(v, w2, s, t, cache);
-//        vector<int> b(v.size());
-//
-//        for (int i = 0; i < b.size(); i++) {
-//            b[i] = result_temp[i + 1] - result_temp[i];
-//        }
-//
-//        vector<int> c(w.size() % t, 1);
-//        vector<int> d(v.size());
-//        vector<int> e(w.size() - w.size() % t);
-//        vector<int> w_temp(w.begin() + w.size() - w.size() % t, w.end());
-//        vector<int> result(v.size());
-//        fill_partial_edit_distance(b, c, v, w_temp, result, e);
-//
-//        for (int i = 0; i < result.size(); i++) {
-//            result[i] += result_temp[0];
-//        }
-//        return vector(result.begin(), result.begin() + initial_v_size);
-//    } else {
-//        return edit_distance_rightmost_col(v, w);
-//    }
 }

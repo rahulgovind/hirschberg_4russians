@@ -16,4 +16,6 @@ std::vector<int> russians(std::vector<int> v, std::vector<int> w, int s, int t, 
 
 int *cache_values(int t, int s);
 
+int *calculate_or_load_cache(int t, int s);
+
 #endif //PROJECT_RUSSIANS_H

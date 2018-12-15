@@ -9,22 +9,8 @@
 
 using namespace std;
 
-void printResult(map<int, vector<int> > &result) {
-    for (auto iter = result.begin(); iter != result.end(); ++iter) {
-        cout << iter->first << ": ";
-        for (int i = 0; i < iter->second.size(); ++i)
-            cout << iter->second[i] << ",";
-        cout << endl;
-    }
-}
 
-void printVector(vector<int> &vec) {
-    for (int i = 0; i < vec.size(); ++i)
-        cout << vec[i] << ",";
-    cout << endl;
-}
-
-int getAlignmentScore(string &seq1_align, string &seq2_align, map<string, int> &scoring) {
+int calculate_alignment_score(string &seq1_align, string &seq2_align, map<string, int> &scoring) {
     int score = 0;
     for (int i = 0; i < seq1_align.size(); ++i) {
         if (seq1_align[i] == '-' || seq2_align[i] == '-')
@@ -39,7 +25,6 @@ int getAlignmentScore(string &seq1_align, string &seq2_align, map<string, int> &
 
 vector<int> russians_prefix(int i1, int j1, int i2, int j2,
                             string &seq1, string &seq2, int *cache, int t, int s) {
-    cout << "Prefix: " << i1 << " " << i2 << " " << j1 << " " << j2 << endl;
     vector<int> v, w;
     for (int i = i1; i <= i2; i++) {
         v.push_back(seq1[i] - '0');
@@ -57,9 +42,7 @@ vector<int> russians_prefix(int i1, int j1, int i2, int j2,
 
 vector<int> russians_suffix(int i1, int j1, int i2, int j2,
                             string &seq1, string &seq2, int *cache, int t, int s) {
-    cout << "Suffix: " << i1 << " " << i2 << " " << j1 << " " << j2 << endl;
     vector<int> v, w;
-
     for (int i = i1 + 1; i <= i2; i++) {
         v.push_back(seq1[i] - '0');
     }
@@ -79,7 +62,6 @@ vector<int> russians_suffix(int i1, int j1, int i2, int j2,
     }
     return result;
 }
-
 
 vector<int> prefix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring) {
     // 2-column solution
@@ -107,7 +89,7 @@ vector<int> prefix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, m
     return col2;
 }
 
-vector<int>  suffix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring) {
+vector<int> suffix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring) {
     // 2-column solution
     int col_length = i2 - i1 + 1;
     vector<int> col1(col_length), col2(col_length);
@@ -132,17 +114,17 @@ vector<int>  suffix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, 
     return col2;
 }
 
-void hirschberg(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
-                map<int, vector<int> > &result, int *cache, int s, int t) {
+/*
+ * _hirschberg_standard runs the standard hirschberg algorithm for global alignment _without_ four russians
+ */
+void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
+                          map<int, vector<int> > &result) {
     if (j1 >= j2 - 1)
         return;
 
-//    vector<int> pre = russians_prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, cache, t, s);
     vector<int> pre = prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, scoring);
-//    vector<int> suf = russians_suffix(i1, j1 + ((j2 - j1) / 2), i2, j2, seq1, seq2, cache, t, s);
     vector<int> suf = suffix(i1, j1 + ((j2 - j1) / 2), i2, j2, seq1, seq2, scoring);
-//    cout << "SUF1: "; print_vector(suf);
-//    cout << "SUF2: "; print_vector(suf2);
+
     int max = pre[0] + suf[0], list_begin_ix = 0;
     for (int i = 1; i < pre.size(); ++i) {
         if (max < pre[i] + suf[i]) {
@@ -152,16 +134,51 @@ void hirschberg(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<
     }
     vector<int> i_star_list;
     i_star_list.push_back(i1 + list_begin_ix);
-    for (int i = list_begin_ix+1; i < pre.size(); ++i) {
-        if ((pre[i] == pre[i-1] + scoring["indel"]) && max == pre[i]+suf[i])
+    for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
+        if ((pre[i] == pre[i - 1] + scoring["indel"]) && max == pre[i] + suf[i])
             i_star_list.push_back(i1 + i);
     }
     int i_star = i_star_list[0];
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
-    hirschberg(i1, j1, i_star, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
-    hirschberg(i_star, (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
+    _hirschberg_standard(i1, j1, i_star, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result);
+    _hirschberg_standard(i_star, (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result);
 }
 
+/*
+ * _hirschberg_russians` runs the hirschberg algorithm for global alignment _wiht_ the four russaisn
+ */
+void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
+                          map<int, vector<int> > &result, int *cache, int s, int t) {
+    if (j1 >= j2 - 1)
+        return;
+
+    vector<int> pre = russians_prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, cache, t, s);
+    vector<int> suf = russians_suffix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, cache, t, s);
+//    vector<int> pre = prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, scoring);
+//    vector<int> suf = suffix(i1, j1 + ((j2 - j1) / 2), i2, j2, seq1, seq2, scoring);
+
+    int max = pre[0] + suf[0], list_begin_ix = 0;
+    for (int i = 1; i < pre.size(); ++i) {
+        if (max < pre[i] + suf[i]) {
+            max = pre[i] + suf[i];
+            list_begin_ix = i;
+        }
+    }
+    vector<int> i_star_list;
+    i_star_list.push_back(i1 + list_begin_ix);
+    for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
+        if ((pre[i] == pre[i - 1] + scoring["indel"]) && max == pre[i] + suf[i])
+            i_star_list.push_back(i1 + i);
+    }
+    int i_star = i_star_list[0];
+    result[(j1 + ((j2 - j1) / 2))] = i_star_list;
+    _hirschberg_russians(i1, j1, i_star, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
+    _hirschberg_russians(i_star, (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
+}
+
+/*
+ * Hirschberg by default does not consider the first and the last column in it's recursion. We add them manually
+ */
 void addFirstLastColumnToResult(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring) {
     vector<int> i_star_first_col, i_star_last_col;
     vector<int> first_col_suffix = suffix(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring);
@@ -183,11 +200,11 @@ void addFirstLastColumnToResult(map<int, vector<int> > &result, string &seq1, st
     result[seq2.size() - 1] = i_star_last_col;
 }
 
-void printAlignment(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring) {
+pstring make_alignment(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring) {
     string seq1_align, seq2_align;
-    addFirstLastColumnToResult(result, seq1, seq2, scoring);
     int next_col_first_cell = seq1.size();
     map<int, vector<int> >::reverse_iterator riter = result.rbegin();
+
     for (; riter != result.rend(); ++riter) {
         int col_no = riter->first;
         bool col_started = false;
@@ -214,33 +231,43 @@ void printAlignment(map<int, vector<int> > &result, string &seq1, string &seq2, 
     }
     reverse(seq1_align.begin(), seq1_align.end());
     reverse(seq2_align.begin(), seq2_align.end());
-    cout << seq1_align << endl;
-    cout << seq2_align << endl;
-    int alignment_score = getAlignmentScore(seq1_align, seq2_align, scoring);
-    cout << "our alignment score: " << alignment_score << endl;
+
+    int alignment_score = calculate_alignment_score(seq1_align, seq2_align, scoring);
+    cerr << "our alignment score: " << alignment_score << endl;
+
+    return make_pair(seq1_align, seq2_align);
 }
 
-//int main() {
-//    string sequence1, sequence2;
-//    cin >> sequence1 >> sequence2;
-//    map<string, int> scoring;
-//    scoring["indel"] = -1;
-//    scoring["mismatch"] = -1;
-//    scoring["match"] = 0;
-//    sequence1 = "*" + sequence1;
-//    sequence2 = "*" + sequence2;
-//    if (sequence2.size() < sequence1.size()) // keeping sequence1 as the shorter sequence
-//        swap(sequence1, sequence2);
-//    cout << "seq1: " << sequence1 << endl;
-//    cout << "seq2: " << sequence2 << endl;
-//    map<int, vector<int> > result;
-//    hirschberg(0, 0, sequence1.size() - 1, sequence2.size() - 1, sequence1, sequence2, scoring, result);
-//    for (map<int, vector<int> >::iterator iter = result.begin(); iter != result.end(); ++iter) {
-//        cout << "for column " << iter->first << endl;
-//        for (int i = 0; i < iter->second.size(); ++i) {
-//            cout << iter->second[i] << ", ";
-//        }
-//        cout << endl;
-//    }
-//    printAlignment(result, sequence1, sequence2, scoring);
-//}
+pstring hirschberg_standard(string &seq1, string &seq2, map<string, int> &scoring) {
+    map<int, vector<int> > report;
+    if (seq1.size() < seq2.size()) // keeping sequence1 as the shorter sequence
+        swap(seq1, seq2);
+    seq1 = "0" + seq1;
+    seq2 = "0" + seq2;
+    _hirschberg_standard(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring, report);
+    addFirstLastColumnToResult(report, seq1, seq2, scoring);
+    return make_alignment(report, seq1, seq2, scoring);
+}
+
+pstring hirschberg_standard(string &seq1, string &seq2) {
+    map<string, int> scoring;
+    scoring["indel"] = -1;
+    scoring["mismatch"] = -1;
+    scoring["match"] = 0;
+    return hirschberg_standard(seq1, seq2, scoring);
+}
+
+pstring hirschberg_russians(string &seq1, string &seq2, map<string, int> &scoring, int s, int t) {
+    int *cache = calculate_or_load_cache(t, s);
+    map<int, vector<int> > report;
+    if (seq1.size() < seq2.size()) // keeping sequence1 as the shorter sequence
+        swap(seq1, seq2);
+    seq1 = "0" + seq1;
+    seq2 = "0" + seq2;
+    _hirschberg_russians(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring, report, cache, s, t);
+    addFirstLastColumnToResult(report, seq1, seq2, scoring);
+    return make_alignment(report, seq1, seq2, scoring);
+}
+
+
+

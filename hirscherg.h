@@ -9,8 +9,15 @@
 
 using namespace std;
 
-void hirschberg(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
-                map<int, vector<int> > &result, int *cache, int s, int t);
+
+typedef pair<string, string> pstring;
+
+
+pstring hirschberg_standard(string &seq1, string &seq2);
+
+pstring hirschberg_standard(string &seq1, string &seq2, map<string, int> &scoring);
+
+pstring hirschberg_russians(string &seq1, string &seq2, map<string, int> &scoring, int s, int t);
 
 void printAlignment(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring);
 
