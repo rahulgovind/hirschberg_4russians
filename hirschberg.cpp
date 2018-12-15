@@ -114,19 +114,13 @@ vector<int> suffix(int i1, int j1, int i2, int j2, string &seq1, string &seq2, m
     return col2;
 }
 
-/*
- * _hirschberg_standard runs the standard hirschberg algorithm for global alignment _without_ four russians
- */
-void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
-                          map<int, vector<int> > &result) {
-    if (j1 >= j2 - 1)
-        return;
-
-    vector<int> pre = prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, scoring);
-    vector<int> suf = suffix(i1, j1 + ((j2 - j1) / 2), i2, j2, seq1, seq2, scoring);
+vector<int> _find_i_star_list(int i1, int j1, int i2, int j2, int j, string &seq1, string &seq2,
+                              map<string, int> &scoring) {
+    vector<int> pre = prefix(i1, j1, i2, j, seq1, seq2, scoring);
+    vector<int> suf = suffix(i1, j, i2, j2, seq1, seq2, scoring);
 
     int max = pre[0] + suf[0], list_begin_ix = 0;
-    for (int i = 1; i < pre.size(); ++i) {
+    for (int i = 0; i < pre.size(); ++i) {
         if (max < pre[i] + suf[i]) {
             max = pre[i] + suf[i];
             list_begin_ix = i;
@@ -138,10 +132,49 @@ void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &
         if ((pre[i] == pre[i - 1] + scoring["indel"]) && max == pre[i] + suf[i])
             i_star_list.push_back(i1 + i);
     }
-    int i_star = i_star_list[0];
+    return i_star_list;
+}
+
+vector<int> _find_i_star_list_russian(int i1, int j1, int i2, int j2, int j, string &seq1, string &seq2,
+                                      int *cache, int t, int s) {
+    vector<int> pre = russians_prefix(i1, j1, i2, j, seq1, seq2, cache, t, s);
+    vector<int> suf = russians_suffix(i1, j, i2, j2, seq1, seq2, cache, t, s);
+
+    int max = pre[0] + suf[0], list_begin_ix = 0;
+    for (int i = 0; i < pre.size(); ++i) {
+        if (max < pre[i] + suf[i]) {
+            max = pre[i] + suf[i];
+            list_begin_ix = i;
+        }
+    }
+    vector<int> i_star_list;
+    i_star_list.push_back(i1 + list_begin_ix);
+    for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
+        if ((pre[i] == pre[i - 1] - 1) && max == pre[i] + suf[i])
+            i_star_list.push_back(i1 + i);
+    }
+    return i_star_list;
+}
+
+/*
+ * _hirschberg_standard runs the standard hirschberg algorithm for global alignment _without_ four russians
+ */
+void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
+                          map<int, vector<int> > &result) {
+    if (j1 >= j2 - 1) {
+        if (j1 == 0) {
+            result[0] = _find_i_star_list(i1, j1, i2, j2, 0, seq1, seq2, scoring);
+        }
+        if (j2 == seq2.size() - 1) {
+            result[seq2.size() - 1] = _find_i_star_list(i1, j1, i2, j2, seq2.size() - 1, seq1, seq2, scoring);
+        }
+        return;
+    }
+
+    vector<int> i_star_list = _find_i_star_list(i1, j1, i2, j2, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring);
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
-    _hirschberg_standard(i1, j1, i_star, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result);
-    _hirschberg_standard(i_star, (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result);
+    _hirschberg_standard(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result);
+    _hirschberg_standard(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result);
 }
 
 /*
@@ -149,58 +182,27 @@ void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &
  */
 void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
                           map<int, vector<int> > &result, int *cache, int s, int t) {
-    if (j1 >= j2 - 1)
+    if (j1 >= j2 - 1) {
+        if (j1 == 0) {
+            result[0] = _find_i_star_list_russian(i1, j1, i2, j2, 0, seq1, seq2, cache, t, s);
+        }
+        if (j2 == seq2.size() - 1) {
+            result[seq2.size() - 1] = _find_i_star_list_russian(i1, j1, i2, j2, seq2.size() - 1, seq1, seq2,
+                    cache, t, s);
+        }
         return;
-
-    vector<int> pre = russians_prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, cache, t, s);
-    vector<int> suf = russians_suffix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, cache, t, s);
-//    vector<int> pre = prefix(i1, j1, i2, j1 + ((j2 - j1) / 2), seq1, seq2, scoring);
-//    vector<int> suf = suffix(i1, j1 + ((j2 - j1) / 2), i2, j2, seq1, seq2, scoring);
-
-    int max = pre[0] + suf[0], list_begin_ix = 0;
-    for (int i = 1; i < pre.size(); ++i) {
-        if (max < pre[i] + suf[i]) {
-            max = pre[i] + suf[i];
-            list_begin_ix = i;
-        }
     }
-    vector<int> i_star_list;
-    i_star_list.push_back(i1 + list_begin_ix);
-    for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
-        if ((pre[i] == pre[i - 1] + scoring["indel"]) && max == pre[i] + suf[i])
-            i_star_list.push_back(i1 + i);
-    }
-    int i_star = i_star_list[0];
+
+    vector<int> i_star_list = _find_i_star_list_russian(i1, j1, i2, j2, (j1 + ((j2 - j1) / 2)), seq1, seq2,
+            cache, t, s);
+
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
-    _hirschberg_russians(i1, j1, i_star, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
-    _hirschberg_russians(i_star, (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
+    _hirschberg_russians(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
+    _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
 }
 
-/*
- * Hirschberg by default does not consider the first and the last column in it's recursion. We add them manually
- */
-void addFirstLastColumnToResult(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring) {
-    vector<int> i_star_first_col, i_star_last_col;
-    vector<int> first_col_suffix = suffix(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring);
-    vector<int> last_col_prefix = prefix(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring);
-    int first_col_best_score = first_col_suffix[0], last_col_best_score = last_col_prefix.back();
-    cout << "correct alignment score: " << last_col_best_score << endl;
-    for (int i = 0; i < seq1.size(); ++i) {
-        int first_col_score = first_col_suffix[i] - i;
-        int last_col_score = last_col_prefix[seq1.size() - i - 1] - i;
-        if (i == 0 || first_col_score == first_col_best_score) {
-            i_star_first_col.push_back(i);
-        }
-        if (i == 0 || last_col_score == last_col_best_score) {
-            i_star_last_col.push_back(seq1.size() - i - 1);
-        }
-    }
-    reverse(i_star_last_col.begin(), i_star_last_col.end());
-    result[0] = i_star_first_col;
-    result[seq2.size() - 1] = i_star_last_col;
-}
 
-pstring make_alignment(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring) {
+pstring make_alignment(map<int, vector<int> > &result, string &seq1, string &seq2) {
     string seq1_align, seq2_align;
     int next_col_first_cell = seq1.size();
     map<int, vector<int> >::reverse_iterator riter = result.rbegin();
@@ -232,21 +234,19 @@ pstring make_alignment(map<int, vector<int> > &result, string &seq1, string &seq
     reverse(seq1_align.begin(), seq1_align.end());
     reverse(seq2_align.begin(), seq2_align.end());
 
-    int alignment_score = calculate_alignment_score(seq1_align, seq2_align, scoring);
-    cerr << "our alignment score: " << alignment_score << endl;
-
     return make_pair(seq1_align, seq2_align);
 }
 
 pstring hirschberg_standard(string &seq1, string &seq2, map<string, int> &scoring) {
     map<int, vector<int> > report;
-    if (seq1.size() < seq2.size()) // keeping sequence1 as the shorter sequence
+    if (seq1.size() < seq2.size()) // keeping sequence2 as the shorter sequence
         swap(seq1, seq2);
     seq1 = "0" + seq1;
     seq2 = "0" + seq2;
     _hirschberg_standard(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring, report);
-    addFirstLastColumnToResult(report, seq1, seq2, scoring);
-    return make_alignment(report, seq1, seq2, scoring);
+    pstring result = make_alignment(report, seq1, seq2);
+    fprintf(stderr, "Our alignment score: %d\n", calculate_alignment_score(result.first, result.second, scoring));
+    return result;
 }
 
 pstring hirschberg_standard(string &seq1, string &seq2) {
@@ -257,16 +257,23 @@ pstring hirschberg_standard(string &seq1, string &seq2) {
     return hirschberg_standard(seq1, seq2, scoring);
 }
 
-pstring hirschberg_russians(string &seq1, string &seq2, map<string, int> &scoring, int s, int t) {
+pstring hirschberg_russians(string &seq1, string &seq2, int s, int t) {
     int *cache = calculate_or_load_cache(t, s);
+    map<string, int> scoring;
+    scoring["indel"] = -1;
+    scoring["mismatch"] = -1;
+    scoring["match"] = 0;
+
     map<int, vector<int> > report;
-    if (seq1.size() < seq2.size()) // keeping sequence1 as the shorter sequence
-        swap(seq1, seq2);
     seq1 = "0" + seq1;
     seq2 = "0" + seq2;
     _hirschberg_russians(0, 0, seq1.size() - 1, seq2.size() - 1, seq1, seq2, scoring, report, cache, s, t);
-    addFirstLastColumnToResult(report, seq1, seq2, scoring);
-    return make_alignment(report, seq1, seq2, scoring);
+
+    pstring result = make_alignment(report, seq1, seq2);
+
+    fprintf(stderr, "Our alignment score: %d\n", calculate_alignment_score(result.first, result.second, scoring));
+
+    return result;
 }
 
 

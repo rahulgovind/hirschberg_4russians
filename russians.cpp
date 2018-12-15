@@ -220,7 +220,7 @@ inline bool file_exists(const string &name) {
  */
 int *calculate_or_load_cache(int t, int s) {
     string filename = "_cache_" + to_string(t) + "_" + to_string(s);
-    if (!file_exists(filename)) {
+    if (!file_exists(filename) || true) {
         fprintf(stderr, "Creating cache for t=%d, s=%d\n", t, s);
         int *cache = cache_values(t, s);
         ulong max_value = int_pow(s, t);

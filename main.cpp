@@ -68,16 +68,16 @@ void print_alignment(pstring alignment) {
 
 int main() {
     string sequence1 = "001011011001001";
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         sequence1 += sequence1;
     }
     string sequence2 = "001011110101001";
-    for (int i = 0; i < 5; i++) {
+    for (int i = 0; i < 4; i++) {
         sequence2 += sequence2;
     }
     map<int, vector<int> > result;
 
-    pstring alignment = hirschberg_standard(sequence1, sequence2);
+    pstring alignment = hirschberg_russians(sequence1, sequence2, 4, 2);
     print_alignment(alignment);
-    cerr << "Edit distance naive: " << edit_distance(string_to_vector(sequence1), string_to_vector(sequence2));
+    cerr << "Edit distance naive: " << edit_distance(string_to_vector(sequence1), string_to_vector(sequence2)) << endl;
 }
