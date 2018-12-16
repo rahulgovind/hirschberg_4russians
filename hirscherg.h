@@ -13,11 +13,11 @@ using namespace std;
 typedef pair<string, string> pstring;
 
 
-pstring hirschberg_standard(string &seq1, string &seq2);
+pstring hirschberg_standard(string seq1, string seq2);
 
-pstring hirschberg_standard(string &seq1, string &seq2, map<string, int> &scoring);
+pstring hirschberg_standard(string seq1, string seq2, map<string, int> &scoring);
 
-pstring hirschberg_russians(string &seq1, string &seq2, int s, int t);
+pstring hirschberg_russians(string seq1, string seq2, int s, int t);
 
 void printAlignment(map<int, vector<int> > &result, string &seq1, string &seq2, map<string, int> &scoring);
 

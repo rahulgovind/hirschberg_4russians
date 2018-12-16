@@ -4,8 +4,11 @@
 #include <random>
 #include "russians.h"
 #include "hirscherg.h"
+#include "helpers.h"
+#include <chrono>
 
 using namespace std;
+using namespace std::chrono;
 
 typedef long long ll;
 
@@ -17,17 +20,17 @@ int edit_distance2(const vector<int> &v, const vector<int> &w) {
     ulong m = v.size() + 1, n = w.size() + 1;
     vector<int> prev(m), curr(m);
 
-    for (int i=0; i < m; i++) {
+    for (int i = 0; i < m; i++) {
         prev[i] = i;
     }
 
     for (int j = 1; j < n; j++) {
         curr[0] = j;
         for (int i = 1; i < m; i++) {
-            if (v[i-1] == w[j-1]) {
-                curr[i] = prev[i-1];
+            if (v[i - 1] == w[j - 1]) {
+                curr[i] = prev[i - 1];
             } else {
-                curr[i] = min(curr[i-1], min(prev[i], prev[i-1])) + 1;
+                curr[i] = min(curr[i - 1], min(prev[i], prev[i - 1])) + 1;
             }
         }
         prev = curr;
@@ -129,18 +132,32 @@ void test1() {
 
 // Runs hirschberg against two randomly generated strings and times them
 void test2() {
-    string seq1 = generate_random_string(4000, 4);
-    string seq2 = generate_random_string(4000, 4);
+    string seq1 = generate_random_string(3200, 2);
+    string seq2 = generate_random_string(3200, 2);
     cerr << "Sequence 1: " << seq1 << endl;
     cerr << "Sequence 2: " << seq2 << endl;
 
-    pstring alignment = hirschberg_russians(seq1, seq2, 4, 3);
-    print_alignment(alignment);
-    cerr << "Len1: " << char_count(alignment.first) << "\t" << "Len2: " << char_count(alignment.second) << endl;
-    cerr << "Edit distance naive:\t" << edit_distance(string_to_vector(seq1), string_to_vector(seq2)) << endl;
+
+    auto t1 = high_resolution_clock::now();
+    pstring alignment = hirschberg_russians(seq1, seq2, 2, 3);
+    auto t2 = high_resolution_clock::now();
+    printf("Hirschberg (Four Russians) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+    t1 = high_resolution_clock::now();
+    alignment = hirschberg_standard(seq1, seq2);
+    t2 = high_resolution_clock::now();
+    printf("Hirschberg (Standard) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+    t1 = high_resolution_clock::now();
+    edit_distance(string_to_vector(seq1), string_to_vector(seq2));
+    t2 = high_resolution_clock::now();
+    printf("Naive Edit Distance took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
     cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
 }
 
 int main() {
     test2();
+//    Encoder e("TCTABC");
+//    cout << e.encode("TCTABC") << endl;
 }
