@@ -131,6 +131,8 @@ vector<int> _find_i_star_list(int i1, int j1, int i2, int j2, int j, string &seq
     for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
         if ((pre[i] == pre[i - 1] + scoring["indel"]) && max == pre[i] + suf[i])
             i_star_list.push_back(i1 + i);
+        else
+            break;
     }
     return i_star_list;
 }
@@ -152,6 +154,8 @@ vector<int> _find_i_star_list_russian(int i1, int j1, int i2, int j2, int j, str
     for (int i = list_begin_ix + 1; i < pre.size(); ++i) {
         if ((pre[i] == pre[i - 1] - 1) && max == pre[i] + suf[i])
             i_star_list.push_back(i1 + i);
+        else
+            break;
     }
     return i_star_list;
 }
@@ -201,6 +205,44 @@ void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &
     _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
 }
 
+//pstring make_alignment(map<int, vector<int>> & result, string &seq1, string &seq2) {
+//    vector<pair<int, int> > flat_report;
+//    for (int j=0; j < seq2.length(); j++) {
+//        for (auto i: result[j]) {
+//            flat_report.push_back(make_pair(i, j));
+//        }
+//    }
+//
+//    vector<char> align1;
+//    vector<char> align2;
+//    for (int k=1; k < flat_report.size(); k++) {
+//        pair<int,int> prev = flat_report[k-1];
+//        pair<int,int> curr = flat_report[k];
+//        if (curr.first == prev.first) {
+//            assert(curr.second == prev.second + 1);
+//            align1.push_back('-');
+//            align2.push_back(seq2[curr.second]);
+//        } else if (curr.second == prev.second) {
+//            if (curr.first != prev.first +1) {
+//                cerr << "Prev: " << prev.first << "\t" << prev.second << endl;
+//                cerr << "Curr: " << curr.first << "\t" << curr.second << endl;
+//            }
+//            assert(curr.first == prev.first + 1);
+//            align1.push_back(seq1[curr.first]);
+//            align2.push_back('-');
+//        } else {
+//            if (curr.first != prev.first +1 || curr.second != prev.second + 1) {
+//                cerr << "Prev: " << prev.first << "\t" << prev.second << endl;
+//                cerr << "Curr: " << curr.first << "\t" << curr.second << endl;
+//            }
+//            assert(curr.first == prev.first + 1);
+//            assert(curr.second == prev.second + 1);
+//            align1.push_back(seq1[curr.first]);
+//            align2.push_back(seq2[curr.second]);
+//        }
+//    }
+//    return make_pair(string(align1.begin(), align1.end()), string(align2.begin(), align2.end()));
+//}
 
 pstring make_alignment(map<int, vector<int> > &result, string &seq1, string &seq2) {
     string seq1_align, seq2_align;
