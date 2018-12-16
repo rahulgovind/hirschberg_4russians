@@ -6,6 +6,7 @@
 #include "hirscherg.h"
 #include "helpers.h"
 #include <chrono>
+#include "cxxopts.hpp"
 
 using namespace std;
 using namespace std::chrono;
@@ -132,8 +133,8 @@ void test1() {
 
 // Runs hirschberg against two randomly generated strings and times them
 void test2() {
-    string seq1 = generate_random_string(3200, 2);
-    string seq2 = generate_random_string(3200, 2);
+    string seq1 = generate_random_string(10000, 2);
+    string seq2 = generate_random_string(10000, 2);
     cerr << "Sequence 1: " << seq1 << endl;
     cerr << "Sequence 2: " << seq2 << endl;
 
@@ -156,8 +157,91 @@ void test2() {
     cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
 }
 
-int main() {
-    test2();
-//    Encoder e("TCTABC");
-//    cout << e.encode("TCTABC") << endl;
+// Reads from input
+void test3() {
+    string s1, s2;
+    cin >> s1;
+    cin >> s2;
+
+    Encoder e(s1 + s2);
+    int s = (int) e.charset_size();
+    string seq1 = e.encode(s1);
+    string seq2 = e.encode(s2);
+
+    cerr << "Sequence 1: " << seq1 << endl;
+    cerr << "Sequence 2: " << seq2 << endl;
+
+    auto t1 = high_resolution_clock::now();
+    pstring alignment = hirschberg_russians(seq1, seq2, s, 3);
+    auto t2 = high_resolution_clock::now();
+    printf("Hirschberg (Four Russians) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+    t1 = high_resolution_clock::now();
+    alignment = hirschberg_standard(seq1, seq2);
+    t2 = high_resolution_clock::now();
+    printf("Hirschberg (Standard) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+    t1 = high_resolution_clock::now();
+    edit_distance(string_to_vector(seq1), string_to_vector(seq2));
+    t2 = high_resolution_clock::now();
+    printf("Naive Edit Distance took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+    cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
+
+}
+
+void cli(int argc, char **argv) {
+    cxxopts::Options options("Hirschberg-4Russians",
+                             "Optimal edit distance algorithm with hirschberg and four russians technique");
+    options.add_options()("m,method", "Method to use", cxxopts::value<std::string>());
+    options.add_options()("f,file", "Input file", cxxopts::value<std::string>());
+
+    auto result = options.parse(argc, argv);
+    string method = result["method"].as<std::string>();
+
+    string s1, s2;
+    
+    if (result.count("file") > 0) {
+        string fname = result["file"].as<std::string>();
+        cerr << "Reading from file: " << fname << endl;
+
+        ifstream f(fname);
+        f >> s1;
+        f >> s2;
+    } else {
+        cin >> s1;
+        cin >> s2;
+    }
+
+    Encoder e(s1 + s2);
+    int s = (int) e.charset_size();
+    string seq1 = e.encode(s1);
+    string seq2 = e.encode(s2);
+
+    cerr << "Sequence 1: " << seq1 << endl;
+    cerr << "Sequence 2: " << seq2 << endl;
+
+    if (method == "russians") {
+        auto t1 = high_resolution_clock::now();
+        pstring alignment = hirschberg_russians(seq1, seq2, s, 3);
+        auto t2 = high_resolution_clock::now();
+        printf("Hirschberg (Four Russians) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+    } else if (method == "hirschberg") {
+        auto t1 = high_resolution_clock::now();
+        auto alignment = hirschberg_standard(seq1, seq2);
+        auto t2 = high_resolution_clock::now();
+        printf("Hirschberg (Standard) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+    } else {
+        auto t1 = high_resolution_clock::now();
+        edit_distance(string_to_vector(seq1), string_to_vector(seq2));
+        auto t2 = high_resolution_clock::now();
+        printf("Naive Edit Distance took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+
+        cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
+    }
+}
+
+
+int main(int argc, char **argv) {
+    cli(argc, argv);
 }

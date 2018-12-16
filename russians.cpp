@@ -264,18 +264,15 @@ inline ulong vector_to_index(const int *arr, int n, int base, int offset) {
 /*
  * v and
  */
-vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cache) {
+vector<int> _russians(const vector<int> &v, const vector<int> &w, int s, int t, const int *cache) {
     ulong tpow = int_pow(s, t);
     ulong spow = int_pow(3, t);
-
-    assert(v.size() % t == 1);
-    assert(w.size() % t == 1);
 
     ulong m = v.size();
     ulong n = w.size();
 
-    int b[16];
-    int c[16];
+    int b[6];
+    int c[6];
 
     // Initialize
     for (int i = 0; i < t; i++) {
@@ -290,7 +287,11 @@ vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cac
         row_above[j] = j;
     }
     rightmost_col[0] = w.size() - 1;
-    int *cache2;
+
+    vector<int> w_index(w.size() / t);
+    for (int j=0; j + t < n; j += t) {
+        w_index[j / t] = (int)vector_to_index(&w[j + 1], t, s, 0);
+    }
 
     for (int i = 0; i + t < m; i += t) {
         // Starting new row. Moving down a block. Update b
@@ -307,7 +308,8 @@ vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cac
 
             // Get index into cache
             index = base_index;
-            index = index * tpow + vector_to_index(&w[j + 1], t, s, 0);
+//            index = index * tpow + vector_to_index(&w[j + 1], t, s, 0);
+            index = index * tpow + w_index[j / t];
             index = index * spow + vector_to_index(&b[0], t, 3, -1);
             index = index * spow + vector_to_index(&c[0], t, 3, -1);
             index = index * 2 * t;
@@ -330,7 +332,7 @@ vector<int> _russians(vector<int> v, vector<int> w, int s, int t, const int *cac
         }
 
         // Starting new row after this. So row below will be the row above
-        row_above = row_below;
+        row_above.swap(row_below);
         row_above[0] = i + t;
     }
     return rightmost_col;
@@ -367,7 +369,7 @@ vector<int> russians(vector<int> v, vector<int> w, int s, int t, const int *cach
             }
             result_temp = result;
         }
-        return vector(result.begin(), result.begin() + initial_v_size);
+        return vector<int>(result.begin(), result.begin() + initial_v_size);
     } else {
         return edit_distance_rightmost_col(v, w);
     }

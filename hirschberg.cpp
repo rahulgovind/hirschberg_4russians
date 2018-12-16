@@ -4,11 +4,11 @@
 
 #include "hirscherg.h"
 #include "russians.h"
-
+#include <chrono>
 #include<bits/stdc++.h>
 
 using namespace std;
-
+using namespace std::chrono;
 #define INDEL -1
 #define MATCH 0
 #define MISMATCH -1
@@ -185,6 +185,7 @@ void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &
 
     vector<int> i_star_list = _find_i_star_list(i1, j1, i2, j2, (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring);
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
+
     _hirschberg_standard(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result);
     _hirschberg_standard(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result);
 }
@@ -209,8 +210,12 @@ void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &
                                                         cache, t, s);
 
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
-    _hirschberg_russians(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
-    _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
+
+    _hirschberg_russians(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result,
+                         cache, s, t);
+
+    _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache,
+                         s, t);
 }
 
 pstring make_alignment(map<int, vector<int>> &result, string &seq1, string &seq2) {
@@ -253,7 +258,8 @@ pstring make_alignment(map<int, vector<int>> &result, string &seq1, string &seq2
     }
     if (flat_report.back().first != seq1.size() - 1) {
         cerr << "Problemo: " << flat_report.back().first << endl;
-        cout << "Last column: "; print_vector(result[seq2.length() - 1]);
+        cout << "Last column: ";
+        print_vector(result[seq2.length() - 1]);
         cout << endl;
     }
     assert(flat_report.back().first == seq1.size() - 1);
@@ -317,7 +323,10 @@ pstring hirschberg_standard(string seq1, string seq2) {
 }
 
 pstring hirschberg_russians(string seq1, string seq2, int s, int t) {
+    auto t1 = high_resolution_clock::now();
     int *cache = calculate_or_load_cache(t, s);
+    auto t2 = high_resolution_clock::now();
+    printf("Loading cache took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
 
     map<string, int> scoring;
     scoring["indel"] = -1;
