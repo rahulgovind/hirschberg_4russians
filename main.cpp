@@ -12,6 +12,29 @@ typedef long long ll;
 typedef vector<int> vint;
 typedef pair<vint, vint> vpair;
 
+int edit_distance2(const vector<int> &v, const vector<int> &w) {
+    // One column at a time
+    ulong m = v.size() + 1, n = w.size() + 1;
+    vector<int> prev(m), curr(m);
+
+    for (int i=0; i < m; i++) {
+        prev[i] = i;
+    }
+
+    for (int j = 1; j < n; j++) {
+        curr[0] = j;
+        for (int i = 1; i < m; i++) {
+            if (v[i-1] == w[j-1]) {
+                curr[i] = prev[i-1];
+            } else {
+                curr[i] = min(curr[i-1], min(prev[i], prev[i-1])) + 1;
+            }
+        }
+        prev = curr;
+    }
+
+    return curr.back();
+}
 
 int edit_distance(const vector<int> &v, const vector<int> &w) {
     unsigned long m = v.size() + 1, n = w.size() + 1;
@@ -87,6 +110,7 @@ void print_alignment(pstring alignment) {
     cout << alignment.second << endl;
 }
 
+// Runs hirschberg_russians against some user-defined strings
 void test1() {
     string sequence1 = "001011011001001";
     for (int i = 0; i < 3; i++) {
@@ -103,16 +127,18 @@ void test1() {
     cerr << "Edit distance naive: " << edit_distance(string_to_vector(sequence1), string_to_vector(sequence2)) << endl;
 }
 
+// Runs hirschberg against two randomly generated strings and times them
 void test2() {
-    string seq1 = generate_random_string(800, 2);
-    string seq2 = generate_random_string(1000, 2);
+    string seq1 = generate_random_string(4000, 4);
+    string seq2 = generate_random_string(4000, 4);
     cerr << "Sequence 1: " << seq1 << endl;
     cerr << "Sequence 2: " << seq2 << endl;
 
-    pstring alignment = hirschberg_russians(seq1, seq2, 4, 2);
+    pstring alignment = hirschberg_russians(seq1, seq2, 4, 3);
     print_alignment(alignment);
     cerr << "Len1: " << char_count(alignment.first) << "\t" << "Len2: " << char_count(alignment.second) << endl;
-    cerr << "Edit distance naive: " << edit_distance(string_to_vector(seq1), string_to_vector(seq2)) << endl;
+    cerr << "Edit distance naive:\t" << edit_distance(string_to_vector(seq1), string_to_vector(seq2)) << endl;
+    cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
 }
 
 int main() {

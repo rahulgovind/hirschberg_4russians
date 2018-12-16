@@ -189,21 +189,28 @@ int *cache_values(int t, int s) {
     return cache;
 }
 
-int *load_cache(const string filename) {
+int *load_cache(const string filename, int t, int s) {
     ifstream f(filename, ios::binary | ios::ate);
     streamsize size = f.tellg();
-    if (size % sizeof(int) != 0) {
-        cerr << "Invalid cache file" << endl;
-        return NULL;
-    } else {
-        cerr << "Array size: " << size / sizeof(int) << endl;
+    f.seekg(0, ios::beg);
+
+    ulong max_value = int_pow(s, t);
+    ulong max_value2 = int_pow(3, t);
+    ulong total_size = 2 * max_value * max_value * max_value2 * max_value2 * t;
+
+    if (total_size * 4 != size) {
+        cerr << "Cache size does not match expected size" << endl;
+        exit(-1);
     }
+
+    cerr << "Array size: " << size / sizeof(int) << endl;
 
     char *cache = new char[size];
     if (f.read(cache, size)) {
         return (int *) cache;
     } else {
-        return NULL;
+        fprintf(stderr, "Failed to read file");
+        exit(1);
     }
 }
 
@@ -220,7 +227,7 @@ inline bool file_exists(const string &name) {
  */
 int *calculate_or_load_cache(int t, int s) {
     string filename = "_cache_" + to_string(t) + "_" + to_string(s);
-    if (!file_exists(filename) || true) {
+    if (!file_exists(filename)) {
         fprintf(stderr, "Creating cache for t=%d, s=%d\n", t, s);
         int *cache = cache_values(t, s);
         ulong max_value = int_pow(s, t);
@@ -232,7 +239,7 @@ int *calculate_or_load_cache(int t, int s) {
         return cache;
     } else {
         fprintf(stderr, "Loading cache from file %s\n", filename.c_str());
-        return load_cache(filename);
+        return load_cache(filename, t, s);
     }
 }
 
@@ -362,10 +369,6 @@ vector<int> russians(vector<int> v, vector<int> w, int s, int t, const int *cach
         }
         return vector(result.begin(), result.begin() + initial_v_size);
     } else {
-        cout << "V: ";
-        print_vector(v);
-        cout << "W: ";
-        print_vector(w);
         return edit_distance_rightmost_col(v, w);
     }
 }
