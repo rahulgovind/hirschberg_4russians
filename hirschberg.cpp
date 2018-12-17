@@ -28,8 +28,8 @@ int calculate_alignment_score(string &seq1_align, string &seq2_align, map<string
 }
 
 vector<int> russians_prefix(int i1, int j1, int i2, int j2,
-                            string &seq1, string &seq2, int *cache, int t, int s) {
-    vector<int> v, w;
+                            string &seq1, string &seq2, char *cache, int t, int s) {
+    vector<char> v, w;
     for (int i = i1; i <= i2; i++) {
         v.push_back(seq1[i] - '0');
     }
@@ -45,8 +45,8 @@ vector<int> russians_prefix(int i1, int j1, int i2, int j2,
 }
 
 vector<int> russians_suffix(int i1, int j1, int i2, int j2,
-                            string &seq1, string &seq2, int *cache, int t, int s) {
-    vector<int> v, w;
+                            string &seq1, string &seq2, char *cache, int t, int s) {
+    vector<char> v, w;
     for (int i = i1 + 1; i <= i2; i++) {
         v.push_back(seq1[i] - '0');
     }
@@ -145,7 +145,7 @@ vector<int> _find_i_star_list(int i1, int j1, int i2, int j2, int j, string &seq
 }
 
 vector<int> _find_i_star_list_russian(int i1, int j1, int i2, int j2, int j, string &seq1, string &seq2,
-                                      int *cache, int t, int s) {
+                                      char *cache, int t, int s) {
     vector<int> pre = russians_prefix(i1, j1, i2, j, seq1, seq2, cache, t, s);
     vector<int> suf = russians_suffix(i1, j, i2, j2, seq1, seq2, cache, t, s);
 
@@ -194,7 +194,7 @@ void _hirschberg_standard(int i1, int j1, int i2, int j2, string &seq1, string &
  * _hirschberg_russians` runs the hirschberg algorithm for global alignment _wiht_ the four russaisn
  */
 void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &seq2, map<string, int> &scoring,
-                          map<int, vector<int> > &result, int *cache, int s, int t) {
+                          map<int, vector<int> > &result, char *cache, int s, int t) {
     if (j1 >= j2 - 1) {
         if (j1 == 0) {
             result[0] = _find_i_star_list_russian(i1, j1, i2, j2, 0, seq1, seq2, cache, t, s);
@@ -210,12 +210,8 @@ void _hirschberg_russians(int i1, int j1, int i2, int j2, string &seq1, string &
                                                         cache, t, s);
 
     result[(j1 + ((j2 - j1) / 2))] = i_star_list;
-
-    _hirschberg_russians(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result,
-                         cache, s, t);
-
-    _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache,
-                         s, t);
+    _hirschberg_russians(i1, j1, i_star_list.front(), (j1 + ((j2 - j1) / 2)), seq1, seq2, scoring, result, cache, s, t);
+    _hirschberg_russians(i_star_list.back(), (j1 + ((j2 - j1) / 2)), i2, j2, seq1, seq2, scoring, result, cache, s, t);
 }
 
 pstring make_alignment(map<int, vector<int>> &result, string &seq1, string &seq2) {
@@ -324,7 +320,7 @@ pstring hirschberg_standard(string seq1, string seq2) {
 
 pstring hirschberg_russians(string seq1, string seq2, int s, int t) {
     auto t1 = high_resolution_clock::now();
-    int *cache = calculate_or_load_cache(t, s);
+    char *cache = calculate_or_load_cache(t, s);
     auto t2 = high_resolution_clock::now();
     printf("Loading cache took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
 

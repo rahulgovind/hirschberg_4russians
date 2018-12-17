@@ -193,14 +193,13 @@ void test3() {
 void cli(int argc, char **argv) {
     cxxopts::Options options("Hirschberg-4Russians",
                              "Optimal edit distance algorithm with hirschberg and four russians technique");
-    options.add_options()("m,method", "Method to use", cxxopts::value<std::string>());
+    options.add_options()("m,method", "Method to use (Options: russians,hirschberg", cxxopts::value<std::string>());
     options.add_options()("f,file", "Input file", cxxopts::value<std::string>());
 
     auto result = options.parse(argc, argv);
     string method = result["method"].as<std::string>();
 
     string s1, s2;
-    
     if (result.count("file") > 0) {
         string fname = result["file"].as<std::string>();
         cerr << "Reading from file: " << fname << endl;
@@ -209,7 +208,9 @@ void cli(int argc, char **argv) {
         f >> s1;
         f >> s2;
     } else {
+        cout << "Enter first sequence: ";
         cin >> s1;
+        cout << "Enter second sequence: ";
         cin >> s2;
     }
 
@@ -218,25 +219,31 @@ void cli(int argc, char **argv) {
     string seq1 = e.encode(s1);
     string seq2 = e.encode(s2);
 
-    cerr << "Sequence 1: " << seq1 << endl;
-    cerr << "Sequence 2: " << seq2 << endl;
+//    cerr << "Sequence 1: " << seq1 << endl;
+//    cerr << "Sequence 2: " << seq2 << endl;
 
     if (method == "russians") {
         auto t1 = high_resolution_clock::now();
-        pstring alignment = hirschberg_russians(seq1, seq2, s, 3);
+        pstring alignment = hirschberg_russians(seq1, seq2, s, 2);
         auto t2 = high_resolution_clock::now();
-        printf("Hirschberg (Four Russians) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
+        fprintf(stderr, "Hirschberg (Four Russians) took %lld milliseconds\n",
+                duration_cast<milliseconds>(t2 - t1).count());
+        cout << e.decode(alignment.first) << endl;
+        cout << e.decode(alignment.second) << endl;
     } else if (method == "hirschberg") {
         auto t1 = high_resolution_clock::now();
         auto alignment = hirschberg_standard(seq1, seq2);
         auto t2 = high_resolution_clock::now();
-        printf("Hirschberg (Standard) took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
-    } else {
+        fprintf(stderr, "Hirschberg (Standard) took %lld milliseconds\n",
+                duration_cast<milliseconds>(t2 - t1).count());
+        cout << e.decode(alignment.first) << endl;
+        cout << e.decode(alignment.second) << endl;
+    } else if (method == "edit") {
         auto t1 = high_resolution_clock::now();
         edit_distance(string_to_vector(seq1), string_to_vector(seq2));
         auto t2 = high_resolution_clock::now();
-        printf("Naive Edit Distance took %lld milliseconds\n", duration_cast<milliseconds>(t2 - t1).count());
-
+        fprintf(stderr, "Naive Edit Distance took %lld milliseconds\n",
+                duration_cast<milliseconds>(t2 - t1).count());
         cerr << "Edit distance naive2:\t" << edit_distance2(string_to_vector(seq1), string_to_vector(seq2)) << endl;
     }
 }

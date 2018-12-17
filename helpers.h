@@ -44,7 +44,7 @@ public:
     string decode(string s) {
         vector<char> v;
         for (int i = 0; i < s.length(); i++) {
-            v.push_back(d[s[i]]);
+            v.push_back(s[i] == '-' ? '-' : d[s[i]]);
         }
         return string(v.begin(), v.end());
     }

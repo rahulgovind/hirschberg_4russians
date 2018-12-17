@@ -47,9 +47,9 @@ void print_matrix(vector<vector<int> > v) {
  * e = (output) bottom row. _not_ offset-encoded
  * Here, there is no extra character before v or w
  */
-void fill_partial_edit_distance(const vector<int> &b, const vector<int> &c,
-                                const vector<int> &v, const vector<int> &w,
-                                vector<int> &d, vector<int> &e) {
+void fill_partial_edit_distance(const vector<char> &b, const vector<char> &c,
+                                const vector<char> &v, const vector<char> &w,
+                                vector<char> &d, vector<char> &e) {
     /*
      * Some other implicit restrictions
      * b.size() == v.size()
@@ -58,7 +58,7 @@ void fill_partial_edit_distance(const vector<int> &b, const vector<int> &c,
      * e.size() == c.size()
      */
     unsigned long m = v.size() + 1, n = w.size() + 1;
-    vector<vector<int> > dp(m, vector<int>(n));
+    vector<vector<char> > dp(m, vector<char>(n));
 
     // Initializations
     dp[0][0] = 0;
@@ -97,7 +97,7 @@ void fill_partial_edit_distance(const vector<int> &b, const vector<int> &c,
  * edit_distance right-most col uses the naive algorithm to calculate the right-most column of the dp table
  * v[0] and w[0] are ignored. They are assumed to be padding characters.
  */
-vector<int> edit_distance_rightmost_col(const vector<int> &v, const vector<int> &w) {
+vector<int> edit_distance_rightmost_col(const vector<char> &v, const vector<char> &w) {
     unsigned long m = v.size(), n = w.size();
     vector<vector<int> > dp(m, vector<int>(n));
     vector<int> result(m);
@@ -128,10 +128,10 @@ vector<int> edit_distance_rightmost_col(const vector<int> &v, const vector<int> 
 }
 
 
-void fill_base_values(vector<int> &v, ulong x, int base, int offset) {
+void fill_base_values(vector<char> &v, ulong x, int base, int offset) {
     int i = v.size() - 1;
     while (i >= 0) {
-        v[i] = int(x % base) + offset;
+        v[i] = char(x % base) + offset;
         x /= base;
         i -= 1;
     }
@@ -145,7 +145,7 @@ ulong int_pow(int x, int m) {
     return result;
 }
 
-int *cache_values(int t, int s) {
+char *cache_values(int t, int s) {
     ulong tpow = int_pow(s, t);
     ulong spow = int_pow(3, t);
 
@@ -153,11 +153,11 @@ int *cache_values(int t, int s) {
     ulong max_value2 = int_pow(3, t);
 
     ulong total_size = 2 * tpow * spow * max_value * max_value2 * t;
-    int *cache = new int[total_size];
+    char *cache = new char[total_size];
 
     cerr << "Total size: " << total_size << endl;
-    int *cache_iter = cache;
-    vector<int> v(t), w(t), b(t), c(t), d(t), e(t);
+    char *cache_iter = cache;
+    vector<char> v(t), w(t), b(t), c(t), d(t), e(t);
 
     for (ulong x = 0; x < max_value; x++) {
         cerr << "Completed |   x: " << x + 1 << "/" << max_value << endl;
@@ -189,7 +189,7 @@ int *cache_values(int t, int s) {
     return cache;
 }
 
-int *load_cache(const string filename, int t, int s) {
+char *load_cache(const string &filename, int t, int s) {
     ifstream f(filename, ios::binary | ios::ate);
     streamsize size = f.tellg();
     f.seekg(0, ios::beg);
@@ -198,16 +198,16 @@ int *load_cache(const string filename, int t, int s) {
     ulong max_value2 = int_pow(3, t);
     ulong total_size = 2 * max_value * max_value * max_value2 * max_value2 * t;
 
-    if (total_size * 4 != size) {
+    if (total_size != size) {
         cerr << "Cache size does not match expected size" << endl;
         exit(-1);
     }
 
-    cerr << "Array size: " << size / sizeof(int) << endl;
+    cerr << "Array size: " << size << endl;
 
     char *cache = new char[size];
     if (f.read(cache, size)) {
-        return (int *) cache;
+        return cache;
     } else {
         fprintf(stderr, "Failed to read file");
         exit(1);
@@ -225,16 +225,16 @@ inline bool file_exists(const string &name) {
  *
  * calculate_or_load_cache returns NULL if something went wrong :(
  */
-int *calculate_or_load_cache(int t, int s) {
+char *calculate_or_load_cache(int t, int s) {
     string filename = "_cache_" + to_string(t) + "_" + to_string(s);
     if (!file_exists(filename)) {
         fprintf(stderr, "Creating cache for t=%d, s=%d\n", t, s);
-        int *cache = cache_values(t, s);
+        char *cache = cache_values(t, s);
         ulong max_value = int_pow(s, t);
         ulong max_value2 = int_pow(3, t);
         ulong total_size = 2 * max_value * max_value * max_value2 * max_value2 * t;
         ofstream f(filename, ios::binary);
-        f.write((char *) cache, total_size * sizeof(int));
+        f.write(cache, total_size);
         f.close();
         return cache;
     } else {
@@ -243,11 +243,29 @@ int *calculate_or_load_cache(int t, int s) {
     }
 }
 
+ulong vector_to_index(vector<char>::iterator it, vector<char>::iterator end, int base, int offset) {
+    ulong result = 0;
+    while (it != end) {
+        result = result * base + ((*it) - offset);
+        it++;
+    }
+    return result;
+}
+
 ulong vector_to_index(vector<int>::iterator it, vector<int>::iterator end, int base, int offset) {
     ulong result = 0;
     while (it != end) {
         result = result * base + ((*it) - offset);
         it++;
+    }
+    return result;
+}
+
+inline ulong vector_to_index(const char *arr, int n, int base, int offset) {
+    ulong result = 0, i = 0;
+    while (i < n) {
+        result = result * base + (arr[i] - offset);
+        i += 1;
     }
     return result;
 }
@@ -264,15 +282,15 @@ inline ulong vector_to_index(const int *arr, int n, int base, int offset) {
 /*
  * v and
  */
-vector<int> _russians(const vector<int> &v, const vector<int> &w, int s, int t, const int *cache) {
+vector<int> _russians(const vector<char> &v, const vector<char> &w, int s, int t, const char *cache) {
     ulong tpow = int_pow(s, t);
     ulong spow = int_pow(3, t);
 
     ulong m = v.size();
     ulong n = w.size();
 
-    int b[6];
-    int c[6];
+    char b[6];
+    char c[6];
 
     // Initialize
     for (int i = 0; i < t; i++) {
@@ -303,7 +321,7 @@ vector<int> _russians(const vector<int> &v, const vector<int> &w, int s, int t, 
         for (int j = 0; j + t < n; j += t) {
             // Moving right. Update c
             for (int k = 0; k < t; k++) {
-                c[k] = row_above[j + k + 1] - row_above[j + k];
+                c[k] = (char)(row_above[j + k + 1] - row_above[j + k]);
             }
 
             // Get index into cache
@@ -339,7 +357,7 @@ vector<int> _russians(const vector<int> &v, const vector<int> &w, int s, int t, 
 }
 
 
-vector<int> russians(vector<int> v, vector<int> w, int s, int t, const int *cache) {
+vector<int> russians(vector<char> v, vector<char> w, int s, int t, const char *cache) {
     if (v.size() >= t + 1 && w.size() >= t + 1) {
         // We hack our way through to get russians to work for different sizes
         ulong initial_v_size = v.size();
@@ -353,7 +371,7 @@ vector<int> russians(vector<int> v, vector<int> w, int s, int t, const int *cach
             v.push_back(0);
         }
 
-        vector<int> w2(w.begin(), w.begin() + w2_size);
+        vector<char> w2(w.begin(), w.begin() + w2_size);
         vector<int> result_temp = _russians(v, w2, s, t, cache);
         vector<int> result = result_temp;
 

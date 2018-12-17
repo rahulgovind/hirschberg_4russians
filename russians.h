@@ -12,10 +12,10 @@ typedef unsigned long long ulong;
 
 void print_vector(std::vector<int> v);
 
-std::vector<int> russians(std::vector<int> v, std::vector<int> w, int s, int t, const int *cache);
+std::vector<int> russians(std::vector<char> v, std::vector<char> w, int s, int t, const char *cache);
 
-int *cache_values(int t, int s);
+char *cache_values(int t, int s);
 
-int *calculate_or_load_cache(int t, int s);
+char *calculate_or_load_cache(int t, int s);
 
 #endif //PROJECT_RUSSIANS_H
